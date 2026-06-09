@@ -2,6 +2,8 @@ const STORAGE_PREFIX = "vdcPlannerTasks_";
 const LEGACY_STORAGE_KEY = "vdc-weekly-planner-tasks";
 const LEGACY_MIGRATION_KEY = "vdcPlannerLegacyMigrationComplete";
 const PROJECT_FILTER_KEY = "vdcPlannerProjectFilter";
+const PROJECT_SUMMARY_COLLAPSED_KEY = "vdcPlannerProjectSummaryCollapsed";
+const HIGH_PRIORITY_COLLAPSED_KEY = "vdcPlannerHighPriorityCollapsed";
 const APP_VERSION = "1.0.0";
 
 const days = [
@@ -336,6 +338,19 @@ const importWeekInput = document.querySelector("#importWeekInput");
 const resetTemplateButton = document.querySelector("#resetTemplateButton");
 const projectFilter = document.querySelector("#projectFilter");
 const taskSearch = document.querySelector("#taskSearch");
+const metricTotalTasks = document.querySelector("#metricTotalTasks");
+const metricOpenTasks = document.querySelector("#metricOpenTasks");
+const metricCompletedTasks = document.querySelector("#metricCompletedTasks");
+const metricMeetingCount = document.querySelector("#metricMeetingCount");
+const metricHighPriority = document.querySelector("#metricHighPriority");
+const projectSummaryPanel = document.querySelector("#projectSummaryPanel");
+const projectSummaryToggle = document.querySelector("#projectSummaryToggle");
+const projectSummaryCount = document.querySelector("#projectSummaryCount");
+const projectSummary = document.querySelector("#projectSummary");
+const highPriorityPanel = document.querySelector("#highPriorityPanel");
+const highPriorityToggle = document.querySelector("#highPriorityToggle");
+const highPriorityCount = document.querySelector("#highPriorityCount");
+const highPriorityList = document.querySelector("#highPriorityList");
 const taskModal = document.querySelector("#taskModal");
 const modalTitle = document.querySelector("#modalTitle");
 const taskForm = document.querySelector("#taskForm");
@@ -357,6 +372,7 @@ const taskStatusInput = document.querySelector("#taskStatus");
 
 projectFilter.value = getSavedProjectFilter();
 populateTimeSelects();
+initializeDashboardPanels();
 renderWeekSelector();
 updateWeekRange();
 renderBoard();
@@ -382,6 +398,8 @@ projectFilter.addEventListener("change", () => {
   renderBoard();
 });
 taskSearch.addEventListener("input", renderBoard);
+projectSummaryToggle.addEventListener("click", () => toggleDashboardPanel("projectSummary"));
+highPriorityToggle.addEventListener("click", () => toggleDashboardPanel("highPriority"));
 closeModalButton.addEventListener("click", closeTaskModal);
 cancelModalButton.addEventListener("click", closeTaskModal);
 taskModal.addEventListener("click", (event) => {
@@ -433,6 +451,7 @@ taskForm.addEventListener("submit", (event) => {
 });
 
 function renderBoard() {
+  renderDashboard();
   weekGrid.innerHTML = "";
 
   days.forEach((day) => {
@@ -629,8 +648,114 @@ function syncTasksFromDom() {
 
   tasks = mergeVisibleTaskOrder(orderedVisibleTasks, visibleTaskIds);
   saveTasks();
+  renderDashboard();
   renderEmptyStates();
   updateMeetingDayStyles();
+}
+
+function renderDashboard() {
+  const completedTasks = tasks.filter(isCompleteTask);
+  const highPriorityTasks = tasks.filter(isHighPriorityTask);
+
+  metricTotalTasks.textContent = tasks.length;
+  metricOpenTasks.textContent = tasks.length - completedTasks.length;
+  metricCompletedTasks.textContent = completedTasks.length;
+  metricMeetingCount.textContent = tasks.filter((task) => isMeetingPriority(task.priority)).length;
+  metricHighPriority.textContent = highPriorityTasks.length;
+
+  renderProjectSummary();
+  renderHighPriorityList(highPriorityTasks);
+}
+
+function renderProjectSummary() {
+  const rows = getProjectSummaryRows();
+
+  projectSummaryCount.textContent = rows.filter((row) => row.taskCount > 0).length;
+  projectSummary.innerHTML = `
+    <div class="summary-row is-heading">
+      <span>Project Name</span>
+      <span>Task Count</span>
+      <span>Completed</span>
+    </div>
+    ${rows.map((row) => `
+      <div class="summary-row">
+        <strong>${escapeHtml(row.project)}</strong>
+        <span>${row.taskCount}</span>
+        <span>${row.completedCount}</span>
+      </div>
+    `).join("")}
+  `;
+}
+
+function getProjectSummaryRows() {
+  return projects.map((project) => {
+    const projectTasks = tasks.filter((task) => task.project === project);
+    const completedCount = projectTasks.filter(isCompleteTask).length;
+
+    return {
+      project,
+      taskCount: projectTasks.length,
+      completedCount
+    };
+  });
+}
+
+function renderHighPriorityList(highPriorityTasks) {
+  const sortedTasks = [...highPriorityTasks].sort(compareTasksByDayAndTime);
+
+  highPriorityCount.textContent = sortedTasks.length;
+
+  if (!sortedTasks.length) {
+    highPriorityList.innerHTML = '<div class="empty-panel">No high priority tasks this week.</div>';
+    return;
+  }
+
+  highPriorityList.innerHTML = sortedTasks.map((task) => `
+    <article class="priority-item">
+      <div class="priority-item-title">${escapeHtml(task.title)}</div>
+      <div class="priority-item-meta">
+        ${escapeHtml(getDayDisplayLabel(task.day))} / ${escapeHtml(task.startTime)} - ${escapeHtml(task.endTime)} / ${escapeHtml(task.project)} / ${escapeHtml(task.status)}
+      </div>
+    </article>
+  `).join("");
+}
+
+function initializeDashboardPanels() {
+  setDashboardPanelCollapsed(
+    projectSummaryPanel,
+    projectSummaryToggle,
+    getStoredCollapsedState(PROJECT_SUMMARY_COLLAPSED_KEY)
+  );
+  setDashboardPanelCollapsed(
+    highPriorityPanel,
+    highPriorityToggle,
+    getStoredCollapsedState(HIGH_PRIORITY_COLLAPSED_KEY)
+  );
+}
+
+function toggleDashboardPanel(panelName) {
+  if (panelName === "projectSummary") {
+    const nextCollapsedState = !projectSummaryPanel.classList.contains("is-collapsed");
+    setDashboardPanelCollapsed(projectSummaryPanel, projectSummaryToggle, nextCollapsedState);
+    localStorage.setItem(PROJECT_SUMMARY_COLLAPSED_KEY, String(nextCollapsedState));
+    return;
+  }
+
+  const nextCollapsedState = !highPriorityPanel.classList.contains("is-collapsed");
+  setDashboardPanelCollapsed(highPriorityPanel, highPriorityToggle, nextCollapsedState);
+  localStorage.setItem(HIGH_PRIORITY_COLLAPSED_KEY, String(nextCollapsedState));
+}
+
+function setDashboardPanelCollapsed(panel, toggle, isCollapsed) {
+  panel.classList.toggle("is-collapsed", isCollapsed);
+  toggle.textContent = isCollapsed ? "+" : "-";
+  toggle.setAttribute("aria-expanded", String(!isCollapsed));
+}
+
+function getStoredCollapsedState(storageKey) {
+  const storedValue = localStorage.getItem(storageKey);
+
+  return storedValue === null ? true : storedValue === "true";
 }
 
 function mergeVisibleTaskOrder(orderedVisibleTasks, visibleTaskIds) {
@@ -1132,6 +1257,26 @@ function isMeetingPriority(priority) {
   return String(priority).toLowerCase() === "meeting";
 }
 
+function isHighPriorityTask(task) {
+  return String(task.priority).toLowerCase() === "high";
+}
+
+function isCompleteTask(task) {
+  return task.status === "Complete";
+}
+
+function compareTasksByDayAndTime(firstTask, secondTask) {
+  const firstDayIndex = days.findIndex((day) => day.id === firstTask.day);
+  const secondDayIndex = days.findIndex((day) => day.id === secondTask.day);
+  const dayComparison = firstDayIndex - secondDayIndex;
+
+  if (dayComparison !== 0) {
+    return dayComparison;
+  }
+
+  return parseTimeToMinutes(firstTask.startTime) - parseTimeToMinutes(secondTask.startTime);
+}
+
 function getDaySearchLabel(dayId) {
   const day = days.find((item) => item.id === dayId);
 
@@ -1148,6 +1293,18 @@ function getDaySearchLabel(dayId) {
   };
 
   return `${day.id} ${day.name} ${dayNames[day.id] || ""} ${day.label}`;
+}
+
+function getDayDisplayLabel(dayId) {
+  const dayNames = {
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday"
+  };
+
+  return dayNames[dayId] || dayId;
 }
 
 function getSavedProjectFilter() {
