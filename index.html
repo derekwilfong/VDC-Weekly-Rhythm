@@ -41,12 +41,17 @@
 
       <div class="planner-actions">
         <button class="control-btn" id="createWeekButton" type="button">Create New Week</button>
-        <button class="control-btn" id="copyLastWeekButton" type="button">Copy Last Week</button>
+        <button class="control-btn" id="duplicateWeekButton" type="button">Duplicate Week</button>
+        <button class="control-btn" id="copyPreviousWeekButton" type="button">Copy Previous Week</button>
+        <button class="control-btn" id="exportWeekButton" type="button">Export Week</button>
+        <button class="control-btn" id="importWeekButton" type="button">Import Week</button>
         <button class="control-btn danger" id="resetTemplateButton" type="button">Reset to VDC Template</button>
         <button class="new-task-btn" id="newTaskButton" type="button">+ New Task</button>
       </div>
     </div>
   </header>
+
+  <input id="importWeekInput" type="file" accept="application/json,.json" hidden>
 
   <main class="week-grid" id="weekGrid" aria-label="VDC weekly planning board"></main>
 

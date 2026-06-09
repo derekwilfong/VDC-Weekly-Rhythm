@@ -2,6 +2,7 @@ const STORAGE_PREFIX = "vdcPlannerTasks_";
 const LEGACY_STORAGE_KEY = "vdc-weekly-planner-tasks";
 const LEGACY_MIGRATION_KEY = "vdcPlannerLegacyMigrationComplete";
 const PROJECT_FILTER_KEY = "vdcPlannerProjectFilter";
+const APP_VERSION = "1.0.0";
 
 const days = [
   { id: "mon", name: "Mon", label: "Model Health + Planning", focus: "ORIENT & SYNC" },
@@ -327,7 +328,11 @@ const weekGrid = document.querySelector("#weekGrid");
 const weekSelector = document.querySelector("#weekSelector");
 const weekRange = document.querySelector("#weekRange");
 const createWeekButton = document.querySelector("#createWeekButton");
-const copyLastWeekButton = document.querySelector("#copyLastWeekButton");
+const duplicateWeekButton = document.querySelector("#duplicateWeekButton");
+const copyPreviousWeekButton = document.querySelector("#copyPreviousWeekButton");
+const exportWeekButton = document.querySelector("#exportWeekButton");
+const importWeekButton = document.querySelector("#importWeekButton");
+const importWeekInput = document.querySelector("#importWeekInput");
 const resetTemplateButton = document.querySelector("#resetTemplateButton");
 const projectFilter = document.querySelector("#projectFilter");
 const taskSearch = document.querySelector("#taskSearch");
@@ -358,7 +363,11 @@ renderBoard();
 
 newTaskButton.addEventListener("click", () => openTaskModal());
 createWeekButton.addEventListener("click", createNewWeek);
-copyLastWeekButton.addEventListener("click", copyLastWeek);
+duplicateWeekButton.addEventListener("click", duplicateCurrentWeek);
+copyPreviousWeekButton.addEventListener("click", copyPreviousWeek);
+exportWeekButton.addEventListener("click", exportWeek);
+importWeekButton.addEventListener("click", () => importWeekInput.click());
+importWeekInput.addEventListener("change", importWeek);
 resetTemplateButton.addEventListener("click", resetToTemplate);
 weekSelector.addEventListener("change", () => {
   saveTasks();
@@ -840,7 +849,112 @@ function createNewWeek() {
   renderBoard();
 }
 
-function copyLastWeek() {
+function exportWeek() {
+  saveTasks();
+
+  const weekStart = formatDateKey(currentWeekStart);
+  const exportData = {
+    appVersion: APP_VERSION,
+    weekStart,
+    projectFilterOptions: ["All Projects", ...projects],
+    tasks
+  };
+  const fileName = `VDC-Weekly-Rhythm-${weekStart}.json`;
+  const fileBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  const downloadUrl = URL.createObjectURL(fileBlob);
+  const downloadLink = document.createElement("a");
+
+  downloadLink.href = downloadUrl;
+  downloadLink.download = fileName;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  downloadLink.remove();
+  URL.revokeObjectURL(downloadUrl);
+}
+
+function importWeek(event) {
+  const [file] = event.target.files;
+
+  if (!file) {
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.addEventListener("load", () => {
+    try {
+      const importedData = JSON.parse(reader.result);
+
+      if (!importedData || !Array.isArray(importedData.tasks)) {
+        window.alert("Import failed. The selected JSON file must contain a tasks array.");
+        return;
+      }
+
+      const importedTasks = importedData.tasks.map(normalizeTask);
+
+      if (!importedTasks.every(isValidTask)) {
+        window.alert("Import failed. One or more tasks could not be validated.");
+        return;
+      }
+
+      const shouldImport = window.confirm("Replace the current week with imported tasks?");
+
+      if (!shouldImport) {
+        return;
+      }
+
+      tasks = importedTasks;
+      saveTasks();
+      renderWeekSelector();
+      updateWeekRange();
+      renderBoard();
+    } catch (error) {
+      window.alert("Import failed. The selected file is not valid JSON.");
+      console.warn("Could not import VDC planner week.", error);
+    } finally {
+      importWeekInput.value = "";
+    }
+  });
+
+  reader.addEventListener("error", () => {
+    window.alert("Import failed. The selected file could not be read.");
+    importWeekInput.value = "";
+  });
+
+  reader.readAsText(file);
+}
+
+function duplicateCurrentWeek() {
+  saveTasks();
+
+  const defaultTargetWeek = formatDateKey(addDays(currentWeekStart, 7));
+  const targetWeekKey = window.prompt("Enter target week start date (YYYY-MM-DD):", defaultTargetWeek);
+
+  if (!targetWeekKey) {
+    return;
+  }
+
+  if (!isValidMondayDateKey(targetWeekKey)) {
+    window.alert("Please enter a valid Monday week start date in YYYY-MM-DD format.");
+    return;
+  }
+
+  const targetWeekStart = parseDateKey(targetWeekKey);
+  const targetStorageKey = getWeekStorageKey(targetWeekStart);
+
+  if (localStorage.getItem(targetStorageKey)) {
+    const shouldReplace = window.confirm(`Replace tasks for ${formatWeekRange(targetWeekStart)}?`);
+
+    if (!shouldReplace) {
+      return;
+    }
+  }
+
+  localStorage.setItem(targetStorageKey, JSON.stringify(tasks.map((task) => ({ ...task }))));
+  renderWeekSelector();
+}
+
+function copyPreviousWeek() {
   saveTasks();
 
   const previousWeekStart = addDays(currentWeekStart, -7);
@@ -848,6 +962,12 @@ function copyLastWeek() {
 
   if (!previousWeekTasks) {
     window.alert("No saved tasks were found for the previous week.");
+    return;
+  }
+
+  const shouldCopy = window.confirm("Replace the current week with tasks from the previous saved week?");
+
+  if (!shouldCopy) {
     return;
   }
 
@@ -944,6 +1064,16 @@ function parseDateKey(dateKey) {
 
 function isDateKey(dateKey) {
   return /^\d{4}-\d{2}-\d{2}$/.test(dateKey);
+}
+
+function isValidMondayDateKey(dateKey) {
+  if (!isDateKey(dateKey)) {
+    return false;
+  }
+
+  const parsedDate = parseDateKey(dateKey);
+
+  return formatDateKey(parsedDate) === dateKey && parsedDate.getDay() === 1;
 }
 
 function formatWeekRange(weekStart) {

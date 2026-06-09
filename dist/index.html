@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VDC Weekly Planner</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/VDC-Weekly-Rhythm/assets/index-BIx6n30b.js"></script>
+  <script type="module" crossorigin src="/VDC-Weekly-Rhythm/assets/index-C3PVY5Ht.js"></script>
   <link rel="stylesheet" crossorigin href="/VDC-Weekly-Rhythm/assets/index-D9g62q-a.css">
 </head>
 <body>
@@ -42,12 +42,17 @@
 
       <div class="planner-actions">
         <button class="control-btn" id="createWeekButton" type="button">Create New Week</button>
-        <button class="control-btn" id="copyLastWeekButton" type="button">Copy Last Week</button>
+        <button class="control-btn" id="duplicateWeekButton" type="button">Duplicate Week</button>
+        <button class="control-btn" id="copyPreviousWeekButton" type="button">Copy Previous Week</button>
+        <button class="control-btn" id="exportWeekButton" type="button">Export Week</button>
+        <button class="control-btn" id="importWeekButton" type="button">Import Week</button>
         <button class="control-btn danger" id="resetTemplateButton" type="button">Reset to VDC Template</button>
         <button class="new-task-btn" id="newTaskButton" type="button">+ New Task</button>
       </div>
     </div>
   </header>
+
+  <input id="importWeekInput" type="file" accept="application/json,.json" hidden>
 
   <main class="week-grid" id="weekGrid" aria-label="VDC weekly planning board"></main>
 
