@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VDC Weekly Planner</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <div class="badge">VDC // DATA CENTER PROJECTS</div>
+      <h1>Weekly Rhythm</h1>
+      <h2>Coordination Cadence - THU Meeting</h2>
+    </div>
+
+    <div class="planner-controls">
+      <div class="week-picker">
+        <label for="weekSelector">Week</label>
+        <select id="weekSelector"></select>
+        <div class="week-range" id="weekRange">June 8 &ndash; June 12, 2026</div>
+      </div>
+
+      <div class="planner-actions">
+        <button class="control-btn" id="createWeekButton" type="button">Create New Week</button>
+        <button class="control-btn" id="copyLastWeekButton" type="button">Copy Last Week</button>
+        <button class="control-btn danger" id="resetTemplateButton" type="button">Reset to VDC Template</button>
+        <button class="new-task-btn" id="newTaskButton" type="button">+ New Task</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="week-grid" id="weekGrid" aria-label="VDC weekly planning board"></main>
+
+  <footer class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div> High Priority / Meeting</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div> Medium Priority</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7fff6b"></div> Low Priority</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4a5568"></div> Standard Task</div>
+    <div class="legend-item legend-signature">LEWIS BUILDS - VDC - DATA CENTER PROJECTS</div>
+  </footer>
+
+  <div class="modal-backdrop" id="taskModal" hidden>
+    <section class="task-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div>
+          <div class="modal-kicker">Planner Task</div>
+          <h3 id="modalTitle">Edit Task</h3>
+        </div>
+        <button class="icon-btn" id="closeModalButton" type="button" aria-label="Close task editor">x</button>
+      </div>
+
+      <form id="taskForm" class="task-form">
+        <input type="hidden" id="taskId">
+
+        <label>
+          Day
+          <select id="taskDay" required>
+            <option value="mon">Monday</option>
+            <option value="tue">Tuesday</option>
+            <option value="wed">Wednesday</option>
+            <option value="thu">Thursday</option>
+            <option value="fri">Friday</option>
+          </select>
+        </label>
+
+        <div class="form-row">
+          <label>
+            Start Time
+            <select id="taskStartTime" required></select>
+          </label>
+
+          <label>
+            End Time
+            <select id="taskEndTime" required></select>
+          </label>
+        </div>
+
+        <label>
+          Title
+          <input id="taskTitle" type="text" required placeholder="BIM Model Audit">
+        </label>
+
+        <label>
+          Detail
+          <textarea id="taskDetail" rows="4" required placeholder="Describe the work, owners, and expected outcome."></textarea>
+        </label>
+
+        <div class="form-row">
+          <label>
+            Priority
+            <select id="taskPriority" required>
+              <option value="high">High</option>
+              <option value="med">Medium</option>
+              <option value="low">Low</option>
+              <option value="meeting">Meeting</option>
+              <option value="standard">Standard</option>
+            </select>
+          </label>
+
+          <label>
+            Category
+            <select id="taskCategory" required>
+              <option value="bim">BIM</option>
+              <option value="coord">Coord</option>
+              <option value="rfi">RFI</option>
+              <option value="doc">Doc</option>
+              <option value="acc">ACC</option>
+              <option value="field">Field</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label>
+            Project
+            <select id="taskProject" required>
+              <option value="Internal">Internal</option>
+              <option value="NTT HI3">NTT HI3</option>
+              <option value="PHX">PHX</option>
+              <option value="Hillsboro">Hillsboro</option>
+              <option value="Personal">Personal</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select id="taskStatus" required>
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Waiting">Waiting</option>
+              <option value="Complete">Complete</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="form-error" id="formError" aria-live="polite"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-btn" id="cancelModalButton" type="button">Cancel</button>
+          <button class="primary-btn" type="submit">Save Task</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
