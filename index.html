@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VDC Weekly Planner</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/VDC-Weekly-Rhythm/assets/index-C3PVY5Ht.js"></script>
-  <link rel="stylesheet" crossorigin href="/VDC-Weekly-Rhythm/assets/index-D9g62q-a.css">
+  <script type="module" crossorigin src="/VDC-Weekly-Rhythm/assets/index-BM-yNlXQ.js"></script>
+  <link rel="stylesheet" crossorigin href="/VDC-Weekly-Rhythm/assets/index-DARKZfL4.css">
 </head>
 <body>
   <header class="header">
@@ -53,6 +53,59 @@
   </header>
 
   <input id="importWeekInput" type="file" accept="application/json,.json" hidden>
+
+  <section class="metrics-dashboard" aria-label="Weekly metrics dashboard">
+    <div class="metrics-bar" id="metricsBar">
+      <div class="metric-tile">
+        <div class="metric-label">Total Tasks</div>
+        <div class="metric-value" id="metricTotalTasks">0</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Open Tasks</div>
+        <div class="metric-value" id="metricOpenTasks">0</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Completed Tasks</div>
+        <div class="metric-value" id="metricCompletedTasks">0</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">Meeting Count</div>
+        <div class="metric-value" id="metricMeetingCount">0</div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-label">High Priority</div>
+        <div class="metric-value" id="metricHighPriority">0</div>
+      </div>
+    </div>
+
+    <div class="dashboard-panels">
+      <section class="dashboard-panel" id="projectSummaryPanel">
+        <div class="panel-header">
+          <h3>Project Summary</h3>
+          <div class="panel-header-actions">
+            <span class="panel-count" id="projectSummaryCount">0</span>
+            <button class="panel-toggle" id="projectSummaryToggle" type="button" aria-expanded="false" aria-controls="projectSummaryContent">+</button>
+          </div>
+        </div>
+        <div class="panel-content" id="projectSummaryContent">
+          <div class="summary-table" id="projectSummary"></div>
+        </div>
+      </section>
+
+      <section class="dashboard-panel" id="highPriorityPanel">
+        <div class="panel-header">
+          <h3>High Priority Tasks</h3>
+          <div class="panel-header-actions">
+            <span class="panel-count" id="highPriorityCount">0</span>
+            <button class="panel-toggle" id="highPriorityToggle" type="button" aria-expanded="false" aria-controls="highPriorityContent">+</button>
+          </div>
+        </div>
+        <div class="panel-content" id="highPriorityContent">
+          <div class="priority-list" id="highPriorityList"></div>
+        </div>
+      </section>
+    </div>
+  </section>
 
   <main class="week-grid" id="weekGrid" aria-label="VDC weekly planning board"></main>
 
