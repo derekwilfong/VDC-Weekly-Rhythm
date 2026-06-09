@@ -123,7 +123,8 @@ button {
   text-transform: uppercase;
 }
 
-.week-picker select {
+.week-picker select,
+.week-picker input {
   width: 100%;
   background: #0c0f15;
   border: 1px solid var(--border);
@@ -135,7 +136,12 @@ button {
   outline: none;
 }
 
-.week-picker select:focus {
+.week-picker input::placeholder {
+  color: #566174;
+}
+
+.week-picker select:focus,
+.week-picker input:focus {
   border-color: rgba(0, 212, 255, 0.5);
   box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.08);
 }

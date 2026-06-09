@@ -330,6 +330,7 @@ const createWeekButton = document.querySelector("#createWeekButton");
 const copyLastWeekButton = document.querySelector("#copyLastWeekButton");
 const resetTemplateButton = document.querySelector("#resetTemplateButton");
 const projectFilter = document.querySelector("#projectFilter");
+const taskSearch = document.querySelector("#taskSearch");
 const taskModal = document.querySelector("#taskModal");
 const modalTitle = document.querySelector("#modalTitle");
 const taskForm = document.querySelector("#taskForm");
@@ -371,6 +372,7 @@ projectFilter.addEventListener("change", () => {
   localStorage.setItem(PROJECT_FILTER_KEY, projectFilter.value);
   renderBoard();
 });
+taskSearch.addEventListener("input", renderBoard);
 closeModalButton.addEventListener("click", closeTaskModal);
 cancelModalButton.addEventListener("click", closeTaskModal);
 taskModal.addEventListener("click", (event) => {
@@ -456,11 +458,36 @@ function getTasksForDay(dayId) {
 }
 
 function getVisibleTasksForDay(dayId) {
-  return getTasksForDay(dayId).filter(matchesProjectFilter);
+  return getTasksForDay(dayId).filter(isTaskVisible);
+}
+
+function isTaskVisible(task) {
+  return matchesProjectFilter(task) && matchesSearch(task);
 }
 
 function matchesProjectFilter(task) {
   return projectFilter.value === "all" || task.project === projectFilter.value;
+}
+
+function matchesSearch(task) {
+  const query = taskSearch.value.trim().toLowerCase();
+
+  if (!query) {
+    return true;
+  }
+
+  const dayName = getDaySearchLabel(task.day);
+  const searchableText = [
+    task.title,
+    task.detail,
+    task.project,
+    getCategoryLabel(task.category),
+    task.category,
+    task.status,
+    dayName
+  ].join(" ").toLowerCase();
+
+  return searchableText.includes(query);
 }
 
 function createTaskCard(task) {
@@ -599,9 +626,17 @@ function syncTasksFromDom() {
 
 function mergeVisibleTaskOrder(orderedVisibleTasks, visibleTaskIds) {
   if (projectFilter.value === "all") {
+    if (taskSearch.value.trim()) {
+      return mergeFilteredTaskOrder(orderedVisibleTasks, visibleTaskIds);
+    }
+
     return orderedVisibleTasks;
   }
 
+  return mergeFilteredTaskOrder(orderedVisibleTasks, visibleTaskIds);
+}
+
+function mergeFilteredTaskOrder(orderedVisibleTasks, visibleTaskIds) {
   const visibleByDay = new Map(days.map((day) => [day.id, []]));
 
   orderedVisibleTasks.forEach((task) => {
@@ -621,7 +656,7 @@ function updateMeetingDayStyles() {
     const existingBadge = dayHeader.querySelector(".meeting-badge");
     const hasMeetingTask = tasks.some((task) => (
       task.day === day
-      && matchesProjectFilter(task)
+      && isTaskVisible(task)
       && isMeetingPriority(task.priority)
     ));
 
@@ -965,6 +1000,24 @@ function isValidTask(task) {
 
 function isMeetingPriority(priority) {
   return String(priority).toLowerCase() === "meeting";
+}
+
+function getDaySearchLabel(dayId) {
+  const day = days.find((item) => item.id === dayId);
+
+  if (!day) {
+    return dayId;
+  }
+
+  const dayNames = {
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday"
+  };
+
+  return `${day.id} ${day.name} ${dayNames[day.id] || ""} ${day.label}`;
 }
 
 function getSavedProjectFilter() {
