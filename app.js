@@ -1,6 +1,7 @@
 const STORAGE_PREFIX = "vdcPlannerTasks_";
 const LEGACY_STORAGE_KEY = "vdc-weekly-planner-tasks";
 const LEGACY_MIGRATION_KEY = "vdcPlannerLegacyMigrationComplete";
+const PROJECT_FILTER_KEY = "vdcPlannerProjectFilter";
 
 const days = [
   { id: "mon", name: "Mon", label: "Model Health + Planning", focus: "ORIENT & SYNC" },
@@ -328,6 +329,7 @@ const weekRange = document.querySelector("#weekRange");
 const createWeekButton = document.querySelector("#createWeekButton");
 const copyLastWeekButton = document.querySelector("#copyLastWeekButton");
 const resetTemplateButton = document.querySelector("#resetTemplateButton");
+const projectFilter = document.querySelector("#projectFilter");
 const taskModal = document.querySelector("#taskModal");
 const modalTitle = document.querySelector("#modalTitle");
 const taskForm = document.querySelector("#taskForm");
@@ -347,6 +349,7 @@ const taskCategoryInput = document.querySelector("#taskCategory");
 const taskProjectInput = document.querySelector("#taskProject");
 const taskStatusInput = document.querySelector("#taskStatus");
 
+projectFilter.value = getSavedProjectFilter();
 populateTimeSelects();
 renderWeekSelector();
 updateWeekRange();
@@ -362,6 +365,10 @@ weekSelector.addEventListener("change", () => {
   tasks = loadTasks();
   renderWeekSelector();
   updateWeekRange();
+  renderBoard();
+});
+projectFilter.addEventListener("change", () => {
+  localStorage.setItem(PROJECT_FILTER_KEY, projectFilter.value);
   renderBoard();
 });
 closeModalButton.addEventListener("click", closeTaskModal);
@@ -432,7 +439,7 @@ function renderBoard() {
     `;
 
     const taskList = dayColumn.querySelector(".task-list");
-    getTasksForDay(day.id).forEach((task) => {
+    getVisibleTasksForDay(day.id).forEach((task) => {
       taskList.appendChild(createTaskCard(task));
     });
 
@@ -446,6 +453,14 @@ function renderBoard() {
 
 function getTasksForDay(dayId) {
   return tasks.filter((task) => task.day === dayId);
+}
+
+function getVisibleTasksForDay(dayId) {
+  return getTasksForDay(dayId).filter(matchesProjectFilter);
+}
+
+function matchesProjectFilter(task) {
+  return projectFilter.value === "all" || task.project === projectFilter.value;
 }
 
 function createTaskCard(task) {
@@ -557,7 +572,8 @@ function getDragAfterElement(container, y) {
 
 function syncTasksFromDom() {
   const taskById = new Map(tasks.map((task) => [task.id, task]));
-  const orderedTasks = [];
+  const orderedVisibleTasks = [];
+  const visibleTaskIds = new Set();
 
   document.querySelectorAll(".task-list").forEach((taskList) => {
     const day = taskList.dataset.day;
@@ -566,7 +582,8 @@ function syncTasksFromDom() {
       const task = taskById.get(card.dataset.taskId);
 
       if (task) {
-        orderedTasks.push({
+        visibleTaskIds.add(task.id);
+        orderedVisibleTasks.push({
           ...task,
           day
         });
@@ -574,10 +591,27 @@ function syncTasksFromDom() {
     });
   });
 
-  tasks = orderedTasks;
+  tasks = mergeVisibleTaskOrder(orderedVisibleTasks, visibleTaskIds);
   saveTasks();
   renderEmptyStates();
   updateMeetingDayStyles();
+}
+
+function mergeVisibleTaskOrder(orderedVisibleTasks, visibleTaskIds) {
+  if (projectFilter.value === "all") {
+    return orderedVisibleTasks;
+  }
+
+  const visibleByDay = new Map(days.map((day) => [day.id, []]));
+
+  orderedVisibleTasks.forEach((task) => {
+    visibleByDay.get(task.day)?.push(task);
+  });
+
+  return days.flatMap((day) => [
+    ...(visibleByDay.get(day.id) || []),
+    ...tasks.filter((task) => task.day === day.id && !visibleTaskIds.has(task.id))
+  ]);
 }
 
 function updateMeetingDayStyles() {
@@ -585,14 +619,18 @@ function updateMeetingDayStyles() {
     const day = dayColumn.dataset.day;
     const dayHeader = dayColumn.querySelector(".day-header");
     const existingBadge = dayHeader.querySelector(".meeting-badge");
-    const hasMeetingTask = tasks.some((task) => task.day === day && isMeetingPriority(task.priority));
+    const hasMeetingTask = tasks.some((task) => (
+      task.day === day
+      && matchesProjectFilter(task)
+      && isMeetingPriority(task.priority)
+    ));
 
     dayHeader.classList.toggle("is-meeting", hasMeetingTask);
 
     if (hasMeetingTask && !existingBadge) {
       const meetingBadge = document.createElement("div");
       meetingBadge.className = "meeting-badge";
-      meetingBadge.textContent = "⬡ MEETING DAY";
+      meetingBadge.textContent = "\u2b21 MEETING DAY";
       dayHeader.appendChild(meetingBadge);
     }
 
@@ -927,6 +965,14 @@ function isValidTask(task) {
 
 function isMeetingPriority(priority) {
   return String(priority).toLowerCase() === "meeting";
+}
+
+function getSavedProjectFilter() {
+  const savedProjectFilter = localStorage.getItem(PROJECT_FILTER_KEY);
+
+  return savedProjectFilter === "all" || projects.includes(savedProjectFilter)
+    ? savedProjectFilter
+    : "all";
 }
 
 function populateTimeSelects() {
